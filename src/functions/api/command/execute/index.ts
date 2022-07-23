@@ -49,7 +49,7 @@ const verifyRequest = async (body: string, headers: Headers, secret: string): Pr
     return verified;
 }
 
-export const onRequestPost: PagesFunction<{ SLACKBOT: KVNamespace, SECRET: string }> = async ({ params, env, request }) => {
+export const onRequestPost: PagesFunction<{ SLACKBOT: KVNamespace, SECRET: string, TOKEN: string }> = async ({ params, env, request }) => {
 
     try {
 
@@ -62,15 +62,50 @@ export const onRequestPost: PagesFunction<{ SLACKBOT: KVNamespace, SECRET: strin
         const params = new URLSearchParams(body)
         console.log(params.get("text"));
 
-        return new Response(JSON.stringify({
-            "response_type": "ephemeral",
-            "text": "It's 80 degrees right now."
-        }), {
-            status: 200,
-            headers: {
-                "Content-Type": "application/json",
+        const payload = {
+            "trigger_id": params.get("trigger_id"),
+            "view": {
+                "type": "modal",
+                "callback_id": "modal-identifier",
+                "title": {
+                    "type": "plain_text",
+                    "text": "Just a modal"
+                },
+                "blocks": [
+                    {
+                        "type": "section",
+                        "block_id": "section-identifier",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "*Welcome* to ~my~ Block Kit _modal_!"
+                        },
+                        "accessory": {
+                            "type": "button",
+                            "text": {
+                                "type": "plain_text",
+                                "text": "Just a button"
+                            },
+                            "action_id": "button-identifier"
+                        }
+                    }
+                ]
             }
+        };
+
+        console.log("Payload", payload);
+
+        const response = await fetch("https://slack.com/api/views.open", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json;charset=UTF8",
+                "Authorization": `Bearer ${env.TOKEN}`
+            },
+            body: JSON.stringify(payload)
         });
+
+        console.log("RESPONSE", response.status, await response.text());
+
+        return new Response(null);
     }
     catch (e) {
         console.error(e);
