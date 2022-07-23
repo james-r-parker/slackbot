@@ -59,53 +59,31 @@ export const onRequestPost: PagesFunction<{ SLACKBOT: KVNamespace, SECRET: strin
             return new Response("Bad Request", { status: 400 });
         }
 
-        const params = new URLSearchParams(body)
-        console.log(params.get("text"));
+        const params = new URLSearchParams(body);
+        const command = params.get("text");
 
-        const payload = {
-            "trigger_id": params.get("trigger_id"),
-            "view": {
-                "type": "modal",
-                "callback_id": "modal-identifier",
-                "title": {
-                    "type": "plain_text",
-                    "text": "Just a modal"
-                },
-                "blocks": [
-                    {
-                        "type": "section",
-                        "block_id": "section-identifier",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": "*Welcome* to ~my~ Block Kit _modal_!"
-                        },
-                        "accessory": {
-                            "type": "button",
-                            "text": {
-                                "type": "plain_text",
-                                "text": "Just a button"
-                            },
-                            "action_id": "button-identifier"
-                        }
-                    }
-                ]
+        if (command) {
+            const parts = command.split(" ");
+            const modal = await env.SLACKBOT.get(parts[0]);
+            if (modal) {
+                const payload = { trigger_id: params.get("trigger_id"), view: JSON.parse(modal) }
+                console.log("Payload", payload);
+                const response = await fetch("https://slack.com/api/views.open", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json;charset=UTF8",
+                        "Authorization": `Bearer ${env.TOKEN}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                console.log("RESPONSE", response.status, await response.text());
+
+                return new Response(null);
             }
-        };
+        }
 
-        console.log("Payload", payload);
-
-        const response = await fetch("https://slack.com/api/views.open", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json;charset=UTF8",
-                "Authorization": `Bearer ${env.TOKEN}`
-            },
-            body: JSON.stringify(payload)
-        });
-
-        console.log("RESPONSE", response.status, await response.text());
-
-        return new Response(null);
+        return new Response("Unknown command");
     }
     catch (e) {
         console.error(e);
