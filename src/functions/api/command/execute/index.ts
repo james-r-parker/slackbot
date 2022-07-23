@@ -11,9 +11,21 @@ export const onRequestPost: PagesFunction<{ SLACKBOT: KVNamespace, TOKEN: string
             const modal = await env.SLACKBOT.get(parts[0]);
             if (modal) {
                 const record = JSON.parse(modal);
-                const payload = { trigger_id: params.get("trigger_id"), view: { ...record.modal, callback_id: `form_${parts[0]}`, private_metadata: JSON.stringify({ command: command, meta: record.meta, response_url : params.get("response_url") }) } }
-                console.log("Payload", payload);
-                const response = await fetch("https://slack.com/api/views.open", {
+
+                const payload = {
+                    trigger_id: params.get("trigger_id"),
+                    view: {
+                        ...record.modal,
+                        callback_id: `form_${parts[0]}`,
+                        private_metadata: JSON.stringify({
+                            command: command,
+                            meta: record.meta,
+                            response_url: params.get("response_url")
+                        })
+                    }
+                }
+
+                await fetch("https://slack.com/api/views.open", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json;charset=UTF8",
@@ -21,8 +33,6 @@ export const onRequestPost: PagesFunction<{ SLACKBOT: KVNamespace, TOKEN: string
                     },
                     body: JSON.stringify(payload)
                 });
-
-                console.log("RESPONSE", response.status, await response.text());
 
                 return new Response(null);
             }
